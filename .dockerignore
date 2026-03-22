@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+*.md
+.DS_Store
+**/.vscode
+**/*.log
+node_modules
+.git
+*.md
+.DS_Store
+**/.vscode
+**/*.log

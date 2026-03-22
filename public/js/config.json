@@ -1,0 +1,45 @@
+{
+    "site": {
+        "title": "ZeroSite",
+        "hero": "欢迎来到 ZeroSite"
+    },
+    "background": {
+        "source": "bing",
+        "customUrl": "",
+        "overlayOpacity": 0.45,
+        "overlayTop": 0.5,
+        "overlayBottom": 0.32
+    },
+    "auth": {
+        "users": [
+            {
+                "username": "admin",
+                "password": "password"
+            }
+        ]
+    },
+    "search": {
+        "engine": "bing",
+        "engines": {
+            "bing": "https://www.bing.com/search?q=",
+            "google": "https://www.google.com/search?q="
+        }
+    },
+    "navCards": [
+        {
+            "title": "关于",
+            "link": "#about",
+            "iconUrl": "/assets/icons/info.svg"
+        },
+        {
+            "title": "作品集",
+            "link": "#work",
+            "iconUrl": "/assets/icons/work.svg"
+        },
+        {
+            "title": "联系",
+            "link": "#contact",
+            "iconUrl": "/assets/icons/contact.svg"
+        }
+    ]
+}
