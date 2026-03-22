@@ -44,7 +44,20 @@ docker compose down
 背景与图标配置
 --------------------------------
 - 背景：在 `js/config.json` 的 `background` 段设置 `source` 为 `bing`（默认）或 `custom`。当为 `bing` 时，页面会请求 Bing 的每日壁纸并作为背景图；如为 `custom`，请填 `customUrl` 为图片地址。
- - 背景：在 `js/config.json` 的 `background` 段设置 `source` 为 `bing`（默认）或 `custom`。当为 `bing` 时，页面会请求 Bing 的每日壁纸并作为背景图；如为 `custom`，请填 `customUrl` 为图片地址。
+
+Bing 壁纸接口：项目现在默认使用 `bing.img.run` 公共接口获取高分辨率壁纸。你也可以在 `public/js/config.json` 中设置 `background.source` 为 `custom` 并填入 `customUrl` 使用自定义图片。
+
+示例配置（使用 bing.img.run）：
+
+```json
+{
+	"background": {
+		"source": "bing",
+		"resolution": "1920x1080",
+		"random": false
+	}
+}
+```
 	 - 遮罩控制：可通过下列字段调节背景上方的渐变遮罩（默认保留现有兼容性）：
 		 - `overlayOpacity`：整体遮罩强度（0 - 1），默认 `0.45`。
 		 - `overlayTop`：顶部渐变不透明度（0 - 1），可选（例如 `0.18`）。
@@ -91,6 +104,66 @@ npm run dev
 ```bash
 npm run build
 ```
+
+快速本地验证（无需 Docker）
+--------------------------------
+下面给出两种不用 Docker 的快速验证方法：
+
+1) 生产模拟（推荐，最接近部署行为）
+
+```bash
+# 在项目根安装前端依赖并构建静态文件
+npm install
+npm run build
+
+# 然后安装并启动后端（server）以同时提供 API 与静态文件
+cd server
+npm install
+npm start   # 或 node index.js
+
+# 在浏览器打开 http://localhost:8080
+```
+
+说明：该流程会把前端构建产物放在 `dist/`，后端会在同一端口提供 `/api/*` 接口和 SPA 页面，这样可以验证 HttpOnly 会话(cookie)、页面加载和服务器端渲染的 Markdown 页面。
+
+2) 开发并行调试（迭代开发时使用）
+
+```bash
+# 在项目根启动 vite 开发服务器
+npm install
+npm run dev
+
+# 在另一个终端中启动后端（API）
+cd server
+npm install
+npm start
+
+# 默认：Vite 在 http://localhost:5173，后端在 http://localhost:8080
+# 若要在开发模式下让前端请求到后端 API，需要在浏览器中直接访问后端地址，
+# 或在 Vite 配置中添加代理将 `/api` 转发到 http://localhost:8080。
+```
+
+Vite 代理示例（在 vite.config.js 中添加）
+
+```js
+export default defineConfig({
+	// ...其他配置
+	server: {
+		proxy: {
+			'/api': {
+				target: 'http://localhost:8080',
+				changeOrigin: true,
+				secure: false,
+			}
+		}
+	}
+})
+```
+
+注意事项
+- 后端示例使用内存会话存储（仅用于本地验证与演示）。生产请改用 Redis 或其他持久化会话存储。
+- 为使 HttpOnly cookie 在本地生效并带有 `secure` 标志，需在生产环境下使用 HTTPS；开发时 `secure` 仅在 `NODE_ENV=production` 时自动启用。
+- 如果遇到端口占用或构建错误，先查看终端日志并确认已在 `server/` 和项目根运行 `npm install`。
 
 动画与平滑滚动
 --------------------------------

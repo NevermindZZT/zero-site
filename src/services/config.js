@@ -1,4 +1,4 @@
 export async function loadConfig(){
-  const res = await fetch('/js/config.json', {cache:'no-store'})
+  const res = await fetch('/api/config', {cache:'no-store'})
   return res.json()
 }

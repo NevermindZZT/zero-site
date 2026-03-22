@@ -1,20 +1,26 @@
-const COOKIE_NAME = 'zero_auth'
-
-function setCookie(name, value, maxAgeSec){ document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSec}` }
-function getCookie(name){ const m = document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)')); return m?m[2]:null }
-function eraseCookie(name){ document.cookie = name+'=; path=/; max-age=0' }
-
-export function isAuthenticated(){ return getCookie(COOKIE_NAME) === '1' }
+export async function isAuthenticated(){
+  try{
+    const res = await fetch('/api/session')
+    if (!res.ok) return false
+    const j = await res.json()
+    return !!(j && j.authenticated)
+  }catch(e){ return false }
+}
 
 export async function login(username,password){
   try{
-    const res = await fetch('/js/config.json', {cache:'no-store'})
-    const cfg = await res.json()
-    const users = cfg.auth && cfg.auth.users || []
-    const ok = users.some(u=>u.username===username && u.password===password)
-    if (ok){ setCookie(COOKIE_NAME,'1',60*60); return {ok:true} }
-    return {ok:false, message:'用户名或密码错误'}
-  }catch(e){ return {ok:false,message:'无法读取配置'} }
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'content-type':'application/json'},
+      body: JSON.stringify({ username, password })
+    })
+    if (res.ok){ const j = await res.json().catch(()=>({})); return {ok:true, user: j.user}
+    }
+    const j = await res.json().catch(()=>({message:'登录失败'}))
+    return {ok:false, message: j && j.message || '用户名或密码错误'}
+  }catch(e){ return {ok:false,message:'无法登录'} }
 }
 
-export function logout(){ eraseCookie(COOKIE_NAME); location.href='/login' }
+export function logout(){
+  fetch('/api/logout', {method:'POST'}).finally(()=>{ location.href='/login' })
+}
