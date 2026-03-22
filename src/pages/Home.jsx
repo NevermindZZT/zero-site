@@ -18,33 +18,29 @@ export default function Home(){
       try{
         if (c.background) {
           if (c.background.source === 'bing'){
-            const api = 'https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US'
-            // try direct fetch first; if blocked by CORS, fallback to a CORS proxy (AllOrigins)
-            async function fetchJsonWithFallback(url){
-              try{
-                const res = await fetch(url)
-                if (res.ok) return await res.json()
-                throw new Error('network response not ok')
-              }catch(err){
-                console.warn('direct fetch failed, trying proxy', err)
-                const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
-                const res2 = await fetch(proxy)
-                if (res2.ok) return await res2.json()
-                throw new Error('proxy fetch failed')
-              }
+            // Use public bing.img.run endpoints which return image URLs directly
+            // support optional config: background.resolution (uhd|1920x1080|1366x768|m) and background.random (boolean)
+            const res = (c.background && c.background.resolution) || 'uhd'
+            const random = !!(c.background && c.background.random)
+            const map = {
+              uhd: 'https://bing.img.run/uhd.php',
+              '1920x1080': 'https://bing.img.run/1920x1080.php',
+              '1366x768': 'https://bing.img.run/1366x768.php',
+              m: 'https://bing.img.run/m.php'
             }
-
-            const j = await fetchJsonWithFallback(api)
-            if (j && j.images && j.images[0]){
-              const url = 'https://www.bing.com' + j.images[0].url
-              // set background immediately so UI shows quickly, still try to preload for diagnostics
-              setBgUrl(url)
-              const img = new Image()
-              // avoid forcing CORS mode which can sometimes cause failures for remote assets
-              img.onload = () => {/* loaded */}
-              img.onerror = (e) => { console.warn('bg image preload error', e) }
-              img.src = url
+            const randMap = {
+              uhd: 'https://bing.img.run/rand_uhd.php',
+              '1920x1080': 'https://bing.img.run/rand.php',
+              '1366x768': 'https://bing.img.run/rand_1366x768.php',
+              m: 'https://bing.img.run/rand_m.php'
             }
+            const url = random ? (randMap[res] || randMap.uhd) : (map[res] || map.uhd)
+            // set background immediately and preload
+            setBgUrl(url)
+            const img = new Image()
+            img.onload = () => {/* loaded */}
+            img.onerror = (e) => { console.warn('bg image preload error', e) }
+            img.src = url
           } else if (c.background.source === 'custom' && c.background.customUrl){
             // use custom URL immediately and attempt preload
             setBgUrl(c.background.customUrl)
