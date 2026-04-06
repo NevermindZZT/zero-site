@@ -1,6 +1,6 @@
 export async function isAuthenticated(){
   try{
-    const res = await fetch('/api/session', { credentials: 'include' })
+    const res = await fetch('/api/session')
     if (!res.ok) return false
     const j = await res.json()
     return !!(j && j.authenticated)
@@ -11,7 +11,6 @@ export async function login(username,password){
   try{
     const res = await fetch('/api/login', {
       method: 'POST',
-      credentials: 'include',
       headers: {'content-type':'application/json'},
       body: JSON.stringify({ username, password })
     })
@@ -23,5 +22,5 @@ export async function login(username,password){
 }
 
 export function logout(){
-  fetch('/api/logout', {method:'POST', credentials:'include'}).finally(()=>{ location.href='/login' })
+  fetch('/api/logout', {method:'POST'}).finally(()=>{ location.href='/login' })
 }

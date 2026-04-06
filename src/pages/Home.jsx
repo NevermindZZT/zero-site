@@ -12,14 +12,40 @@ export default function Home(){
 
   useEffect(()=>{
     let lenis
+
+    function getBingCacheKey(resolution, random){
+      return `zerosite-bing-bg:${resolution}:${random ? 'rand' : 'today'}`
+    }
+
+    function getCachedBingUrl(resolution, random){
+      if (!window.localStorage) return null
+      try{
+        const key = getBingCacheKey(resolution, random)
+        const raw = window.localStorage.getItem(key)
+        if (!raw) return null
+        const entry = JSON.parse(raw)
+        if (!entry || !entry.url || !entry.date) return null
+        const today = new Date().toISOString().slice(0,10)
+        if (entry.date !== today) return null
+        return entry.url
+      }catch(e){ return null }
+    }
+
+    function setCachedBingUrl(resolution, random, url){
+      if (!window.localStorage) return
+      try{
+        const key = getBingCacheKey(resolution, random)
+        const entry = { url, date: new Date().toISOString().slice(0,10) }
+        window.localStorage.setItem(key, JSON.stringify(entry))
+      }catch(e){ /* ignore */ }
+    }
+
     loadConfig().then(async c=>{
       setCfg(c)
       // set background (bing or custom) into state
       try{
         if (c.background) {
           if (c.background.source === 'bing'){
-            // Use public bing.img.run endpoints which return image URLs directly
-            // support optional config: background.resolution (uhd|1920x1080|1366x768|m) and background.random (boolean)
             const res = (c.background && c.background.resolution) || 'uhd'
             const random = !!(c.background && c.background.random)
             const map = {
@@ -34,9 +60,11 @@ export default function Home(){
               '1366x768': 'https://bing.img.run/rand_1366x768.php',
               m: 'https://bing.img.run/rand_m.php'
             }
-            const url = random ? (randMap[res] || randMap.uhd) : (map[res] || map.uhd)
-            // set background immediately and preload
+            const defaultUrl = random ? (randMap[res] || randMap.uhd) : (map[res] || map.uhd)
+            const cached = getCachedBingUrl(res, random)
+            const url = cached || defaultUrl
             setBgUrl(url)
+            if (!cached) setCachedBingUrl(res, random, url)
             const img = new Image()
             img.onload = () => {/* loaded */}
             img.onerror = (e) => { console.warn('bg image preload error', e) }

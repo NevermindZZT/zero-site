@@ -18,7 +18,7 @@ export default function NavCard({item}){
   }
 
   return (
-    <motion.a className="card glow" href={link} whileHover={{ y: -6, scale: 1.02 }} transition={{type:'spring',stiffness:300}}>
+    <motion.a className="card glow" href={link} target="_blank" rel="noopener noreferrer" whileHover={{ y: -6, scale: 1.02 }} transition={{type:'spring',stiffness:300}}>
       <div className="card-icon">
         {item.iconUrl ? <img src={item.iconUrl} alt=""/> : (item.iconSvg ? <span dangerouslySetInnerHTML={{__html:item.iconSvg}}/> : item.icon)}
       </div>
