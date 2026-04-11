@@ -8,7 +8,12 @@ const { marked } = require('marked')
 const app = express()
 const PORT = process.env.PORT || 8080
 
-app.use(cors())
+// Allow credentials (cookies) in cross-origin dev mode / remote access.
+// For production, set proper origin and https.
+app.use(cors({
+  origin: true,
+  credentials: true
+}))
 app.use(express.json())
 app.use(cookieParser())
 
@@ -51,7 +56,8 @@ app.post('/api/login', (req,res)=>{
     // create a session id and set HttpOnly cookie
     const sid = crypto.randomBytes(16).toString('hex')
     sessions[sid] = { username, created: Date.now() }
-    const cookieOpts = { maxAge: 3600*1000, httpOnly: true, sameSite: 'lax' }
+    // set a longer-lived cookie (30 days), to avoid needing to re-login on refresh
+    const cookieOpts = { maxAge: 30 * 24 * 3600 * 1000, httpOnly: true, sameSite: 'lax' }
     if (process.env.NODE_ENV === 'production') cookieOpts.secure = true
     res.cookie('zero_auth', sid, cookieOpts)
     return res.json({ok:true, user:{username}})
