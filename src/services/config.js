@@ -31,3 +31,29 @@ export async function reorderNavCards(order){
   }
   return payload
 }
+
+export async function updateNavCard(reference, card){
+  const res = await fetch('/api/nav-cards/' + encodeURIComponent(reference), {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify(card)
+  })
+  const payload = await res.json().catch(()=>({}))
+  if (!res.ok){
+    throw new Error(payload && payload.message || '卡片更新失败')
+  }
+  return payload
+}
+
+export async function deleteNavCard(reference){
+  const res = await fetch('/api/nav-cards/' + encodeURIComponent(reference), {
+    method: 'DELETE',
+    credentials: 'include'
+  })
+  const payload = await res.json().catch(()=>({}))
+  if (!res.ok){
+    throw new Error(payload && payload.message || '卡片删除失败')
+  }
+  return payload
+}

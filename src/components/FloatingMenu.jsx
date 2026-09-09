@@ -32,9 +32,9 @@ export default function FloatingMenu({onAddCard, onManageCards}){
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             <span>添加卡片</span>
           </button>
-          <button className="menu-item" onClick={()=>{ setOpen(false); onManageCards?.() }} aria-label="调整首页卡片顺序">
+          <button className="menu-item" onClick={()=>{ setOpen(false); onManageCards?.() }} aria-label="编辑首页卡片">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M8 7h12M4 7h.01M8 12h12M4 12h.01M8 17h12M4 17h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            <span>调整顺序</span>
+            <span>编辑卡片</span>
           </button>
           <button className="menu-item" onClick={toggleTheme} aria-label="切换主题">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>

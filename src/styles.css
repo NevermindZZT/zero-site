@@ -156,6 +156,9 @@ input, button{color:var(--fg)}
 .card-icon img.card-icon-image{width:32px;height:32px;object-fit:contain;display:block}
 .card-icon img.card-icon-image--configured{filter:invert(1) saturate(2)}
 .card-icon img.card-icon-image--fetched{filter:none;background:#fff;border-radius:9px;padding:4px;box-shadow:0 2px 8px rgba(15,23,42,0.16)}
+.card-icon-image-shell{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.card-icon-image-shell img.card-icon-image{position:absolute;left:50%;top:50%;opacity:0;transform:translate(-50%,-50%);transition:opacity .16s ease}
+.card-icon-image-shell.is-loaded img.card-icon-image{opacity:1}
 .card-icon-text{font-size:28px;line-height:1}
 .card-icon-fallback{font-size:22px;font-weight:800;line-height:1;color:#fff}
 
@@ -205,6 +208,13 @@ input, button{color:var(--fg)}
 .manage-card-info{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
 .manage-card-info strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
 .manage-card-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px}
+.manage-card-actions{display:flex;gap:6px;flex:0 0 auto}
+.manage-card-action{height:32px;padding:0 8px;border:1px solid rgba(15,23,42,0.1);border-radius:9px;background:transparent;color:var(--fg);cursor:pointer;font-size:12px;line-height:1}
+[data-theme="dark"] .manage-card-action{border-color:rgba(255,255,255,0.12)}
+.manage-card-action:hover:not(:disabled){background:rgba(37,99,235,0.1);color:var(--accent)}
+.manage-card-action--danger{color:#dc3545}
+.manage-card-action--danger:hover:not(:disabled){background:rgba(220,53,69,0.1);color:#dc3545}
+.manage-card-action:disabled{cursor:not-allowed;opacity:0.35}
 .manage-card-controls{display:flex;gap:6px;flex:0 0 auto}
 .move-btn{width:32px;height:32px;border:1px solid rgba(15,23,42,0.1);border-radius:9px;background:transparent;color:var(--fg);cursor:pointer;font-size:17px;line-height:1}
 [data-theme="dark"] .move-btn{border-color:rgba(255,255,255,0.12)}
@@ -213,7 +223,9 @@ input, button{color:var(--fg)}
 .manage-empty{margin:0 0 18px;padding:22px;border:1px dashed rgba(127,127,127,0.28);border-radius:12px;color:var(--muted);text-align:center}
 
 @media (max-width:480px){
-  .manage-card-row{gap:8px;padding:9px}
-  .manage-card-info span{max-width:130px}
+  .manage-card-row{gap:7px;padding:9px}
+  .manage-card-info span{max-width:120px}
+  .manage-card-action{padding:0 6px;font-size:11px}
+  .move-btn{width:30px}
 }
 

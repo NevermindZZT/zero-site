@@ -8,12 +8,12 @@ function createOrder(draft){
   return draft.map(card=>card.id ? {id:card.id} : {index:card.__originalIndex})
 }
 
-export default function ManageCardsModal({open, cards, onClose, onSubmit, saving, error}){
+export default function ManageCardsModal({open, cards, onClose, onSubmit, onEditCard, onDeleteCard, saving, error}){
   const [draft, setDraft] = useState([])
 
   useEffect(()=>{
     if (open) setDraft(createDraft(cards))
-  }, [open])
+  }, [open, cards])
 
   useEffect(()=>{
     if (!open) return undefined
@@ -50,17 +50,22 @@ export default function ManageCardsModal({open, cards, onClose, onSubmit, saving
     onSubmit(createOrder(draft))
   }
 
+  function requestDelete(card){
+    const title = card.title || '这张卡片'
+    if (window.confirm('确认删除“' + title + '”吗？删除后需要重新添加才能恢复。')) onDeleteCard?.(card)
+  }
+
   return (
     <div className="modal-backdrop" data-lenis-prevent role="presentation" onMouseDown={event=>{ if (event.target === event.currentTarget && !saving) onClose() }}>
       <section className="modal-card manage-modal-card" role="dialog" aria-modal="true" aria-labelledby="manage-card-title" onWheel={event=>event.stopPropagation()}>
         <div className="modal-header">
           <div>
             <p className="eyebrow">首页导航</p>
-            <h2 id="manage-card-title">调整卡片顺序</h2>
+            <h2 id="manage-card-title">编辑卡片</h2>
           </div>
-          <button className="icon-btn" type="button" onClick={onClose} disabled={saving} aria-label="关闭卡片排序窗口">×</button>
+          <button className="icon-btn" type="button" onClick={onClose} disabled={saving} aria-label="关闭卡片编辑窗口">×</button>
         </div>
-        <p className="modal-description">使用每行右侧的箭头调整显示顺序，保存后首页会立即更新。</p>
+        <p className="modal-description">可以编辑、删除卡片，或使用每行右侧的箭头调整显示顺序。</p>
         <form onSubmit={handleSubmit}>
           {draft.length ? (
             <ol className="manage-card-list" aria-label="首页卡片顺序">
@@ -70,6 +75,10 @@ export default function ManageCardsModal({open, cards, onClose, onSubmit, saving
                   <div className="manage-card-info">
                     <strong>{card.title || '未命名卡片'}</strong>
                     <span title={card.link}>{card.link}</span>
+                  </div>
+                  <div className="manage-card-actions">
+                    <button className="manage-card-action" type="button" onClick={()=>onEditCard?.(card)} disabled={saving} aria-label={'编辑 ' + (card.title || '卡片')}>编辑</button>
+                    <button className="manage-card-action manage-card-action--danger" type="button" onClick={()=>requestDelete(card)} disabled={saving} aria-label={'删除 ' + (card.title || '卡片')}>删除</button>
                   </div>
                   <div className="manage-card-controls">
                     <button className="move-btn" type="button" onClick={()=>moveCard(index,-1)} disabled={saving || index === 0} aria-label={'上移 ' + (card.title || '卡片')}>↑</button>

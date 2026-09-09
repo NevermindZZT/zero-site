@@ -3,7 +3,7 @@ import NavCard from '../components/NavCard'
 import FloatingMenu from '../components/FloatingMenu'
 import AddCardModal from '../components/AddCardModal'
 import ManageCardsModal from '../components/ManageCardsModal'
-import { loadConfig, addNavCard, reorderNavCards } from '../services/config'
+import { loadConfig, addNavCard, updateNavCard, deleteNavCard, reorderNavCards } from '../services/config'
 import { motion } from 'framer-motion'
 import Lenis from 'lenis'
 
@@ -13,6 +13,7 @@ export default function Home(){
   const [addCardOpen, setAddCardOpen] = useState(false)
   const [savingCard, setSavingCard] = useState(false)
   const [cardError, setCardError] = useState('')
+  const [editingCard, setEditingCard] = useState(null)
   const [manageCardsOpen, setManageCardsOpen] = useState(false)
   const [savingOrder, setSavingOrder] = useState(false)
   const [orderError, setOrderError] = useState('')
@@ -21,7 +22,7 @@ export default function Home(){
     let lenis
 
     function getBingCacheKey(resolution, random){
-      return `zerosite-bing-bg:${resolution}:${random ? 'rand' : 'today'}`
+      return `zerosite-bing-bg:v2:${resolution}:${random ? 'rand' : 'today'}`
     }
 
     function getCachedBingUrl(resolution, random){
@@ -47,42 +48,58 @@ export default function Home(){
       }catch(e){ /* ignore */ }
     }
 
+    function clearCachedBingUrl(resolution, random){
+      if (!window.localStorage) return
+      try{ window.localStorage.removeItem(getBingCacheKey(resolution, random)) }catch(e){ /* ignore */ }
+    }
+
+    function preloadBackground(url, onError){
+      const img = new Image()
+      img.onload = () => {/* loaded */}
+      img.onerror = onError || (()=>{})
+      img.src = url
+    }
+
+    async function loadBingBackground(background, useCache=true){
+      const resolution = (background && background.resolution) || 'uhd'
+      const random = !!(background && background.random)
+      const cached = useCache ? getCachedBingUrl(resolution, random) : null
+      if (cached){
+        setBgUrl(cached)
+        preloadBackground(cached, ()=>{
+          clearCachedBingUrl(resolution, random)
+          loadBingBackground(background, false)
+        })
+        return
+      }
+
+      try{
+        const endpoint = '/api/bing-wallpaper?resolution=' + encodeURIComponent(resolution) + '&random=' + String(random)
+        const response = await fetch(endpoint, {cache:'no-store', credentials:'include'})
+        if (!response.ok) throw new Error('Bing wallpaper API returned ' + response.status)
+        const payload = await response.json()
+        if (!payload || !payload.url) throw new Error('Bing wallpaper URL missing')
+        setBgUrl(payload.url)
+        setCachedBingUrl(resolution, random, payload.url)
+        preloadBackground(payload.url, ()=>{
+          clearCachedBingUrl(resolution, random)
+          console.warn('Bing wallpaper image failed to load')
+        })
+      }catch(e){
+        console.warn('Bing wallpaper load failed', e)
+      }
+    }
+
     loadConfig().then(async c=>{
       setCfg(c)
-      // set background (bing or custom) into state
+      // set background (Bing archive or custom) into state
       try{
         if (c.background) {
           if (c.background.source === 'bing'){
-            const res = (c.background && c.background.resolution) || 'uhd'
-            const random = !!(c.background && c.background.random)
-            const map = {
-              uhd: 'https://bing.img.run/uhd.php',
-              '1920x1080': 'https://bing.img.run/1920x1080.php',
-              '1366x768': 'https://bing.img.run/1366x768.php',
-              m: 'https://bing.img.run/m.php'
-            }
-            const randMap = {
-              uhd: 'https://bing.img.run/rand_uhd.php',
-              '1920x1080': 'https://bing.img.run/rand.php',
-              '1366x768': 'https://bing.img.run/rand_1366x768.php',
-              m: 'https://bing.img.run/rand_m.php'
-            }
-            const defaultUrl = random ? (randMap[res] || randMap.uhd) : (map[res] || map.uhd)
-            const cached = getCachedBingUrl(res, random)
-            const url = cached || defaultUrl
-            setBgUrl(url)
-            if (!cached) setCachedBingUrl(res, random, url)
-            const img = new Image()
-            img.onload = () => {/* loaded */}
-            img.onerror = (e) => { console.warn('bg image preload error', e) }
-            img.src = url
+            await loadBingBackground(c.background)
           } else if (c.background.source === 'custom' && c.background.customUrl){
-            // use custom URL immediately and attempt preload
             setBgUrl(c.background.customUrl)
-            const img = new Image()
-            img.onload = () => {/* loaded */}
-            img.onerror = (e) => { console.warn('custom bg preload error', e) }
-            img.src = c.background.customUrl
+            preloadBackground(c.background.customUrl, e=>console.warn('custom bg preload error', e))
           }
         }
       }catch(e){ console.warn('bg load failed',e) }
@@ -109,16 +126,24 @@ export default function Home(){
     location.href = base + encodeURIComponent(q)
   }
 
-  async function handleAddCard(card){
+  function getCardReference(card){
+    if (card && card.id) return card.id
+    if (card && Number.isInteger(card.__originalIndex)) return 'index-' + card.__originalIndex
+    return ''
+  }
+
+  async function handleSaveCard(card, originalCard){
     setSavingCard(true)
     setCardError('')
     try{
-      const payload = await addNavCard(card)
+      const reference = getCardReference(originalCard)
+      const payload = originalCard ? await updateNavCard(reference, card) : await addNavCard(card)
       if (payload && payload.config){
         setCfg(payload.config)
-      } else {
+      } else if (!originalCard) {
         setCfg(current=>({...current, navCards:[...(current.navCards || []), (payload && payload.card) || card]}))
       }
+      setEditingCard(null)
       setAddCardOpen(false)
     }catch(e){
       setCardError(e.message || '卡片保存失败，请稍后重试')
@@ -127,8 +152,34 @@ export default function Home(){
     }
   }
 
+  async function handleDeleteCard(card){
+    const reference = getCardReference(card)
+    if (!reference){
+      setOrderError('无法定位要删除的卡片')
+      return
+    }
+    setSavingOrder(true)
+    setOrderError('')
+    try{
+      const payload = await deleteNavCard(reference)
+      if (payload && payload.config) setCfg(payload.config)
+    }catch(e){
+      setOrderError(e.message || '卡片删除失败，请稍后重试')
+    }finally{
+      setSavingOrder(false)
+    }
+  }
+
   function openAddCard(){
     setCardError('')
+    setEditingCard(null)
+    setAddCardOpen(true)
+  }
+
+  function openEditCard(card){
+    setCardError('')
+    setManageCardsOpen(false)
+    setEditingCard(card)
     setAddCardOpen(true)
   }
 
@@ -183,16 +234,19 @@ export default function Home(){
       <FloatingMenu onAddCard={openAddCard} onManageCards={openManageCards} />
       <AddCardModal
         open={addCardOpen}
-        onClose={()=>{ if (!savingCard) setAddCardOpen(false) }}
-        onSubmit={handleAddCard}
+        onClose={()=>{ if (!savingCard) { setEditingCard(null); setAddCardOpen(false) } }}
+        onSubmit={handleSaveCard}
         saving={savingCard}
         error={cardError}
+        initialCard={editingCard}
       />
       <ManageCardsModal
         open={manageCardsOpen}
         cards={cfg.navCards || []}
         onClose={()=>{ if (!savingOrder) setManageCardsOpen(false) }}
         onSubmit={handleReorderCards}
+        onEditCard={openEditCard}
+        onDeleteCard={handleDeleteCard}
         saving={savingOrder}
         error={orderError}
       />

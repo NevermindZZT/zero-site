@@ -6,7 +6,7 @@ ZeroSite 是一个轻量的个人网站示例，运行时通过 `public/js/confi
 
 - 运行时可编辑配置：`public/js/config.json`。
 - 支持 `public/pages/*.html` 与 `public/pages/*.md`（后端会将 Markdown 渲染为 HTML）。
-- 简易后端 API：`/api/config`、`/api/login`、`/api/logout`、`/api/pages/:name`、`/api/nav-cards`、`/api/nav-cards/order`、`/api/favicon`。
+- 简易后端 API：`/api/config`、`/api/login`、`/api/logout`、`/api/pages/:name`、`/api/nav-cards`、`/api/nav-cards/order`、`/api/nav-cards/:reference`、`/api/favicon`、`/api/bing-wallpaper`。
 - 登录使用 HttpOnly 会话 cookie（示例实现，后端当前使用内存会话存储）。
 
 ## 快速开始
@@ -90,12 +90,12 @@ services:
 }
 ```
 
-- `background.source` 支持 `bing`（使用 `bing.img.run` 获取高分辨率壁纸）或 `custom`（请提供 `customUrl`）。
+- `background.source` 支持 `bing`（服务端使用 Bing 官方 `HPImageArchive` 获取每日壁纸）或 `custom`（请提供 `customUrl`）。
 - 页面放 `public/pages/*.html` 或 `public/pages/*.md`，后端会优先返回 HTML。
 
 ## 首页卡片管理
 
-登录后点击右下角菜单中的“添加卡片”，填写卡片名称和链接即可将新卡片写入 `public/js/config.json`，刷新页面后仍会保留。点击“调整顺序”即可使用上下箭头重新排列首页卡片，保存后立即生效。链接支持：
+登录后点击右下角菜单中的“添加卡片”，填写卡片名称和链接即可将新卡片写入 `public/js/config.json`，刷新页面后仍会保留。点击“编辑卡片”可以编辑、删除卡片，或使用上下箭头重新排列首页卡片，保存后立即生效。链接支持：
 
 - `http://` / `https://` 外部网站
 - `#about` 形式的站内 Markdown 页面
@@ -103,7 +103,7 @@ services:
 
 如果外部链接没有填写图标，首页会调用后端 `/api/favicon?url=...`：服务端读取网站的 `rel=icon`、`apple-touch-icon` 等声明，并回退到网站根目录的 `/favicon.ico`，以避免浏览器跨域限制。获取失败时会显示卡片名称首字母。
 
-卡片写入接口需要登录会话：`POST /api/nav-cards`；调整顺序使用 `PUT /api/nav-cards/order`。接口会校验链接协议、图标地址和卡片数量，并使用临时文件替换配置文件。部署容器时需要将 `public` 目录挂载为可写持久化卷，否则容器重建后新增卡片或顺序不会保留。
+卡片管理接口需要登录会话：`POST /api/nav-cards` 新增、`PUT /api/nav-cards/:reference` 编辑、`DELETE /api/nav-cards/:reference` 删除，调整顺序使用 `PUT /api/nav-cards/order`。接口会校验链接协议、图标地址和卡片数量，并使用临时文件替换配置文件。部署容器时需要将 `public` 目录挂载为可写持久化卷，否则容器重建后新增卡片、编辑结果或顺序不会保留。
 
 ## 安全说明
 

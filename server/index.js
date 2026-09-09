@@ -117,7 +117,8 @@ function validateCardInput(body){
     const validRelativeIcon = iconUrl.startsWith('/') && !iconUrl.startsWith('//')
     if (!validRelativeIcon && !isValidHttpUrl(iconUrl)) return {error:'图标地址必须是 http(s) 地址或站内路径'}
   }
-  return {card:{title,link,...(iconUrl ? {iconUrl} : {})}}
+  const hasIconUrl = Object.prototype.hasOwnProperty.call(body, 'iconUrl')
+  return {card:{title,link,...(iconUrl ? {iconUrl} : {})}, hasIconUrl}
 }
 
 function normalizeNavCards(cards){
@@ -145,6 +146,16 @@ function reorderNavCards(cards, order){
     reordered.push(card)
   }
   return reordered
+}
+
+function findNavCardIndex(cards, reference){
+  if (!Array.isArray(cards) || typeof reference !== 'string' || !reference) return -1
+  const byId = cards.findIndex(card=>card && card.id === reference)
+  if (byId >= 0) return byId
+  const legacyIndex = /^index-(\d+)$/.exec(reference)
+  if (!legacyIndex) return -1
+  const index = Number(legacyIndex[1])
+  return Number.isInteger(index) && index >= 0 && index < cards.length ? index : -1
 }
 
 function parseHttpUrl(raw){
@@ -336,11 +347,82 @@ async function resolveSiteIcon(target, res){
   return false
 }
 
+function buildBingArchiveUrl(resolution, random){
+  const params = new URLSearchParams({
+    format:'js',
+    idx: random ? String(Math.floor(Math.random() * 8)) : '0',
+    n:'1',
+    mkt:'zh-CN'
+  })
+  if (resolution === 'uhd'){
+    params.set('uhd','1')
+    params.set('uhdwidth','3840')
+    params.set('uhdheight','2160')
+  }
+  return 'https://www.bing.com/HPImageArchive.aspx?' + params.toString()
+}
+
+function normalizeBingResolution(value){
+  return ['uhd','1920x1080','1366x768','m'].includes(value) ? value : 'uhd'
+}
+
+function getBingImageUrl(image, resolution){
+  const rawUrl = image && (image.url || image.urlbase)
+  if (!rawUrl) return ''
+  try{
+    const url = new URL(rawUrl, 'https://www.bing.com')
+    if (url.protocol !== 'https:' || (url.hostname !== 'www.bing.com' && url.hostname !== 'bing.com')) return ''
+    if (resolution !== 'uhd'){
+      const dimensions = {
+        '1920x1080':['1920','1080'],
+        '1366x768':['1366','768'],
+        m:['640','480']
+      }[resolution]
+      if (dimensions){
+        if (!url.searchParams.has('w')) url.searchParams.set('w', dimensions[0])
+        if (!url.searchParams.has('h')) url.searchParams.set('h', dimensions[1])
+      }
+    }
+    return url.toString()
+  }catch(e){
+    return ''
+  }
+}
+
+async function fetchBingWallpaper(resolution, random){
+  const endpoint = buildBingArchiveUrl(resolution, random)
+  const result = await fetchWithRedirects(endpoint, {
+    headers:{'accept':'application/json','user-agent':'ZeroSite Bing wallpaper resolver'}
+  })
+  if (!result.response.ok) throw new Error('Bing archive request failed')
+  const data = await readResponseBuffer(result.response, 256 * 1024)
+  if (!data) throw new Error('Bing archive response too large')
+  const payload = JSON.parse(data.toString('utf8'))
+  const image = payload && Array.isArray(payload.images) ? payload.images[0] : null
+  const url = getBingImageUrl(image, resolution)
+  if (!url) throw new Error('Bing archive returned no image')
+  return {url, date:image.enddate || ''}
+}
+
 // API: get public config (credentials are intentionally omitted)
 app.get('/api/config',(req,res)=>{
   const cfg = loadConfig()
   if (!cfg) return res.status(500).json({error:'config not found'})
   res.json(toPublicConfig(cfg))
+})
+
+// API: resolve the current Bing daily wallpaper URL
+app.get('/api/bing-wallpaper', requireAuth, async (req,res)=>{
+  const resolution = normalizeBingResolution(typeof req.query.resolution === 'string' ? req.query.resolution : 'uhd')
+  const random = req.query.random === 'true'
+  try{
+    const wallpaper = await fetchBingWallpaper(resolution, random)
+    res.set('Cache-Control','private, max-age=300')
+    res.json({ok:true,...wallpaper})
+  }catch(e){
+    console.error('Bing wallpaper load failed', e && e.message)
+    res.status(502).json({ok:false,message:'Bing 壁纸暂时无法获取'})
+  }
 })
 
 // API: login (demo)
@@ -415,6 +497,52 @@ app.put('/api/nav-cards/order', requireAuth, (req,res)=>{
   }catch(e){
     console.error('config order save failed', e && e.message)
     return res.status(500).json({ok:false,message:'卡片顺序保存失败'})
+  }
+  res.json({ok:true,config:toPublicConfig(cfg)})
+})
+
+// API: update a homepage card
+app.put('/api/nav-cards/:reference', requireAuth, (req,res)=>{
+  const validation = validateCardInput(req.body)
+  if (validation.error) return res.status(400).json({ok:false,message:validation.error})
+  const cfg = loadConfig()
+  if (!cfg) return res.status(500).json({ok:false,message:'config not found'})
+  const cards = normalizeNavCards(Array.isArray(cfg.navCards) ? cfg.navCards : [])
+  const index = findNavCardIndex(cards, req.params.reference)
+  if (index < 0) return res.status(404).json({ok:false,message:'卡片不存在'})
+
+  const existing = cards[index]
+  const updated = {...existing,...validation.card,id:existing.id}
+  if (validation.hasIconUrl){
+    delete updated.iconSvg
+    delete updated.icon
+    if (validation.card.iconUrl) updated.iconUrl = validation.card.iconUrl
+    else delete updated.iconUrl
+  }
+  cards[index] = updated
+  cfg.navCards = cards
+  try{
+    saveConfig(cfg)
+  }catch(e){
+    console.error('config card update failed', e && e.message)
+    return res.status(500).json({ok:false,message:'卡片更新失败'})
+  }
+  res.json({ok:true,card:updated,config:toPublicConfig(cfg)})
+})
+
+// API: delete a homepage card
+app.delete('/api/nav-cards/:reference', requireAuth, (req,res)=>{
+  const cfg = loadConfig()
+  if (!cfg) return res.status(500).json({ok:false,message:'config not found'})
+  const cards = normalizeNavCards(Array.isArray(cfg.navCards) ? cfg.navCards : [])
+  const index = findNavCardIndex(cards, req.params.reference)
+  if (index < 0) return res.status(404).json({ok:false,message:'卡片不存在'})
+  cfg.navCards = cards.filter((_,cardIndex)=>cardIndex !== index)
+  try{
+    saveConfig(cfg)
+  }catch(e){
+    console.error('config card delete failed', e && e.message)
+    return res.status(500).json({ok:false,message:'卡片删除失败'})
   }
   res.json({ok:true,config:toPublicConfig(cfg)})
 })

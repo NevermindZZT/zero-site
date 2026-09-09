@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react'
 
 const EMPTY_FORM = { title: '', link: '', iconUrl: '' }
 
+function createForm(card){
+  if (!card) return EMPTY_FORM
+  return {
+    title: card.title || '',
+    link: card.link || '',
+    iconUrl: card.iconUrl || ''
+  }
+}
+
 function isValidLink(value){
   if (value.startsWith('#')) return /^#[A-Za-z0-9_-]+$/.test(value)
   try{
@@ -23,15 +32,15 @@ function isValidIconUrl(value){
   }
 }
 
-export default function AddCardModal({open, onClose, onSubmit, saving, error}){
+export default function AddCardModal({open, onClose, onSubmit, saving, error, initialCard}){
   const [form, setForm] = useState(EMPTY_FORM)
   const [validationError, setValidationError] = useState('')
 
   useEffect(()=>{
     if (!open) return
-    setForm(EMPTY_FORM)
+    setForm(createForm(initialCard))
     setValidationError('')
-  }, [open])
+  }, [open, initialCard])
 
   useEffect(()=>{
     if (!open) return undefined
@@ -74,7 +83,7 @@ export default function AddCardModal({open, onClose, onSubmit, saving, error}){
       setValidationError('图标地址必须是 http(s) 地址或站内路径')
       return
     }
-    onSubmit({title, link, ...(iconUrl ? {iconUrl} : {})})
+    onSubmit({title, link, iconUrl}, initialCard)
   }
 
   return (
@@ -83,11 +92,11 @@ export default function AddCardModal({open, onClose, onSubmit, saving, error}){
         <div className="modal-header">
           <div>
             <p className="eyebrow">首页导航</p>
-            <h2 id="add-card-title">添加卡片</h2>
+            <h2 id="add-card-title">{initialCard ? '编辑卡片' : '添加卡片'}</h2>
           </div>
           <button className="icon-btn" type="button" onClick={onClose} disabled={saving} aria-label="关闭添加卡片窗口">×</button>
         </div>
-        <p className="modal-description">添加常用网站到首页。未填写图标地址时，会自动尝试读取网站 favicon。</p>
+        <p className="modal-description">{initialCard ? '更新卡片名称、链接或图标地址。清空图标地址后会自动尝试读取网站 favicon。' : '添加常用网站到首页。未填写图标地址时，会自动尝试读取网站 favicon。'}</p>
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="label" htmlFor="card-title">卡片名称</label>
@@ -104,7 +113,7 @@ export default function AddCardModal({open, onClose, onSubmit, saving, error}){
           {(validationError || error) && <p className="form-error" role="alert">{validationError || error}</p>}
           <div className="modal-actions">
             <button className="btn secondary" type="button" onClick={onClose} disabled={saving}>取消</button>
-            <button className="btn primary modal-submit" type="submit" disabled={saving}>{saving ? '保存中…' : '添加到首页'}</button>
+            <button className="btn primary modal-submit" type="submit" disabled={saving}>{saving ? '保存中…' : (initialCard ? '保存修改' : '添加到首页')}</button>
           </div>
         </form>
       </section>

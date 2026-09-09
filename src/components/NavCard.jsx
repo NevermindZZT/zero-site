@@ -32,12 +32,19 @@ function CardIcon({item}){
     return {type:'fallback'}
   }
   const [source, setSource] = useState(getInitialSource)
+  const [imageLoaded, setImageLoaded] = useState(false)
 
   useEffect(()=>{
     setSource(getInitialSource())
+    setImageLoaded(false)
   }, [item.iconUrl, item.iconSvg, item.icon, item.link])
 
+  function handleImageLoad(){
+    setImageLoaded(true)
+  }
+
   function handleImageError(){
+    setImageLoaded(false)
     if (source.type === 'configured' && fetchedIcon){
       setSource({type:'fetched', src:fetchedIcon})
     }else{
@@ -47,15 +54,19 @@ function CardIcon({item}){
 
   if (source.type === 'configured' || source.type === 'fetched'){
     return (
-      <img
-        className={'card-icon-image ' + (source.type === 'fetched' ? 'card-icon-image--fetched' : 'card-icon-image--configured')}
-        src={source.src}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onError={handleImageError}
-      />
+      <span className={'card-icon-image-shell ' + (imageLoaded ? 'is-loaded' : '')}>
+        {!imageLoaded && <FallbackIcon title={item.title}/>}
+        <img
+          className={'card-icon-image ' + (source.type === 'fetched' ? 'card-icon-image--fetched' : 'card-icon-image--configured')}
+          src={source.src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+        />
+      </span>
     )
   }
   if (source.type === 'svg') return <span dangerouslySetInnerHTML={{__html:item.iconSvg}} />
