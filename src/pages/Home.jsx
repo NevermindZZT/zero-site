@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import NavCard from '../components/NavCard'
 import FloatingMenu from '../components/FloatingMenu'
 import AddCardModal from '../components/AddCardModal'
@@ -16,7 +16,6 @@ export default function Home(){
   const [manageCardsOpen, setManageCardsOpen] = useState(false)
   const [savingOrder, setSavingOrder] = useState(false)
   const [orderError, setOrderError] = useState('')
-  const lenisRef = useRef(null)
 
   useEffect(()=>{
     let lenis
@@ -93,22 +92,11 @@ export default function Home(){
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (!reduce) {
       lenis = new Lenis({ duration:1.2 })
-      lenisRef.current = lenis
       function raf(t){ lenis.raf(t); requestAnimationFrame(raf) }
       requestAnimationFrame(raf)
     }
-    return ()=>{
-      if (lenis && lenis.destroy) lenis.destroy()
-      if (lenisRef.current === lenis) lenisRef.current = null
-    }
+    return ()=>{ if (lenis && lenis.destroy) lenis.destroy() }
   },[])
-
-  useEffect(()=>{
-    const lenis = lenisRef.current
-    if (!lenis) return
-    if (addCardOpen || manageCardsOpen) lenis.stop()
-    else lenis.start()
-  }, [addCardOpen, manageCardsOpen])
 
   if (!cfg) return null
 

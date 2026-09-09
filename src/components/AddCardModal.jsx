@@ -78,7 +78,7 @@ export default function AddCardModal({open, onClose, onSubmit, saving, error}){
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={event=>{ if (event.target === event.currentTarget && !saving) onClose() }}>
+    <div className="modal-backdrop" data-lenis-prevent role="presentation" onMouseDown={event=>{ if (event.target === event.currentTarget && !saving) onClose() }}>
       <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-card-title" onWheel={event=>event.stopPropagation()}>
         <div className="modal-header">
           <div>
