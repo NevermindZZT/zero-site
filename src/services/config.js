@@ -1,4 +1,33 @@
 export async function loadConfig(){
-  const res = await fetch('/api/config', {cache:'no-store'})
+  const res = await fetch('/api/config', {cache:'no-store', credentials:'include'})
+  if (!res.ok) throw new Error('配置加载失败')
   return res.json()
+}
+
+export async function addNavCard(card){
+  const res = await fetch('/api/nav-cards', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify(card)
+  })
+  const payload = await res.json().catch(()=>({}))
+  if (!res.ok){
+    throw new Error(payload && payload.message || '卡片保存失败')
+  }
+  return payload
+}
+
+export async function reorderNavCards(order){
+  const res = await fetch('/api/nav-cards/order', {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({order})
+  })
+  const payload = await res.json().catch(()=>({}))
+  if (!res.ok){
+    throw new Error(payload && payload.message || '卡片顺序保存失败')
+  }
+  return payload
 }

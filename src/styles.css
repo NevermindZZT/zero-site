@@ -144,10 +144,76 @@ input, button{color:var(--fg)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 
 /* floating menu */
-.floating-menu{position:fixed;right:18px;bottom:18px;z-index:999}
+.floating-menu{position:fixed;right:18px;bottom:18px;z-index:999;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .menu-btn{width:52px;height:52px;border-radius:14px;border:none;background:linear-gradient(90deg,var(--accent),#7c3aed);color:white;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(37,99,235,0.18);cursor:pointer}
-.menu-panel{margin-bottom:8px;background:var(--card);padding:8px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.36);display:flex;flex-direction:column;gap:8px}
+.menu-panel{order:-1;margin-bottom:0;background:var(--card);padding:8px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.36);display:flex;flex-direction:column;gap:8px;transform-origin:bottom right}
 .menu-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:transparent;border:none;color:var(--fg);cursor:pointer}
 .menu-item svg{opacity:0.9}
 .menu-item-toggle{margin-left:auto;opacity:0.8}
+
+
+/* navigation card icon states */
+.card-icon img.card-icon-image{width:32px;height:32px;object-fit:contain;display:block}
+.card-icon img.card-icon-image--configured{filter:invert(1) saturate(2)}
+.card-icon img.card-icon-image--fetched{filter:none;background:#fff;border-radius:9px;padding:4px;box-shadow:0 2px 8px rgba(15,23,42,0.16)}
+.card-icon-text{font-size:28px;line-height:1}
+.card-icon-fallback{font-size:22px;font-weight:800;line-height:1;color:#fff}
+
+/* add-card dialog */
+.modal-backdrop{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(2,6,23,0.52);backdrop-filter:blur(10px)}
+.modal-card{width:min(100%,500px);max-height:min(720px,calc(100vh - 40px));overflow:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(96,165,250,0.48) transparent;padding:24px;border:1px solid rgba(255,255,255,0.12);border-radius:20px;background:var(--card);color:var(--fg);box-shadow:0 24px 80px rgba(2,6,23,0.34);animation:fadeIn 220ms ease both}
+.modal-card::-webkit-scrollbar{width:6px;height:6px}
+.modal-card::-webkit-scrollbar-track{background:transparent}
+.modal-card::-webkit-scrollbar-thumb{border-radius:999px;background:rgba(96,165,250,0.48);border:1px solid transparent;background-clip:padding-box}
+.modal-card::-webkit-scrollbar-thumb:hover{background:rgba(96,165,250,0.72);background-clip:padding-box}
+[data-theme="light"] .modal-card{scrollbar-color:rgba(37,99,235,0.42) transparent}
+[data-theme="light"] .modal-card::-webkit-scrollbar-thumb{background:rgba(37,99,235,0.42);background-clip:padding-box}
+[data-theme="light"] .modal-card::-webkit-scrollbar-thumb:hover{background:rgba(37,99,235,0.64);background-clip:padding-box}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.modal-header h2{margin:2px 0 0;font-size:26px;letter-spacing:-0.02em}
+.eyebrow{margin:0;color:var(--accent);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+.modal-description{margin:14px 0 22px;color:var(--muted);font-size:14px;line-height:1.6}
+.modal-form{display:flex;flex-direction:column;gap:16px}
+.modal-form input{width:100%;padding:12px 13px;border:1px solid rgba(15,23,42,0.1);border-radius:10px;background:rgba(255,255,255,0.45);color:var(--fg);outline:none;transition:border-color .18s ease,box-shadow .18s ease}
+[data-theme="dark"] .modal-form input{border-color:rgba(255,255,255,0.09);background:rgba(255,255,255,0.04)}
+.modal-form input:focus{border-color:rgba(37,99,235,0.45);box-shadow:0 0 0 4px rgba(37,99,235,0.1)}
+.optional{font-weight:400;color:var(--muted)}
+.form-error{margin:0;color:#dc3545;font-size:13px;line-height:1.5}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+.modal-actions .btn{min-width:96px;padding:11px 16px}
+.btn.secondary{border:1px solid rgba(15,23,42,0.1);background:transparent;color:var(--fg)}
+[data-theme="dark"] .btn.secondary{border-color:rgba(255,255,255,0.12)}
+.btn:disabled,.icon-btn:disabled{cursor:not-allowed;opacity:0.58}
+.icon-btn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:28px;line-height:1;cursor:pointer}
+.icon-btn:hover{background:rgba(127,127,127,0.12);color:var(--fg)}
+
+@media (max-width:480px){
+  .modal-backdrop{padding:12px;align-items:flex-end}
+  .modal-card{max-height:calc(100vh - 24px);padding:20px;border-radius:18px}
+  .modal-header h2{font-size:23px}
+  .modal-actions{display:grid;grid-template-columns:1fr 1.4fr}
+  .modal-actions .btn{width:100%}
+}
+
+
+/* card order management */
+.manage-modal-card{max-width:560px}
+.manage-card-list{display:flex;flex-direction:column;gap:8px;margin:0 0 18px;padding:0;list-style:none}
+.manage-card-row{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid rgba(15,23,42,0.08);border-radius:12px;background:rgba(255,255,255,0.38)}
+[data-theme="dark"] .manage-card-row{border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03)}
+.manage-card-position{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;border-radius:8px;background:rgba(37,99,235,0.1);color:var(--accent);font-size:13px;font-weight:800}
+.manage-card-info{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.manage-card-info strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.manage-card-info span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:12px}
+.manage-card-controls{display:flex;gap:6px;flex:0 0 auto}
+.move-btn{width:32px;height:32px;border:1px solid rgba(15,23,42,0.1);border-radius:9px;background:transparent;color:var(--fg);cursor:pointer;font-size:17px;line-height:1}
+[data-theme="dark"] .move-btn{border-color:rgba(255,255,255,0.12)}
+.move-btn:hover:not(:disabled){background:rgba(37,99,235,0.1);color:var(--accent)}
+.move-btn:disabled{cursor:not-allowed;opacity:0.35}
+.manage-empty{margin:0 0 18px;padding:22px;border:1px dashed rgba(127,127,127,0.28);border-radius:12px;color:var(--muted);text-align:center}
+
+@media (max-width:480px){
+  .manage-card-row{gap:8px;padding:9px}
+  .manage-card-info span{max-width:130px}
+}
 

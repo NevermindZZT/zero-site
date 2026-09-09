@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import NavCard from '../components/NavCard'
 import FloatingMenu from '../components/FloatingMenu'
-import { logout } from '../services/auth'
-import { loadConfig } from '../services/config'
+import AddCardModal from '../components/AddCardModal'
+import ManageCardsModal from '../components/ManageCardsModal'
+import { loadConfig, addNavCard, reorderNavCards } from '../services/config'
 import { motion } from 'framer-motion'
 import Lenis from 'lenis'
 
 export default function Home(){
   const [cfg, setCfg] = useState(null)
   const [bgUrl, setBgUrl] = useState('')
+  const [addCardOpen, setAddCardOpen] = useState(false)
+  const [savingCard, setSavingCard] = useState(false)
+  const [cardError, setCardError] = useState('')
+  const [manageCardsOpen, setManageCardsOpen] = useState(false)
+  const [savingOrder, setSavingOrder] = useState(false)
+  const [orderError, setOrderError] = useState('')
+  const lenisRef = useRef(null)
 
   useEffect(()=>{
     let lenis
@@ -79,15 +87,28 @@ export default function Home(){
           }
         }
       }catch(e){ console.warn('bg load failed',e) }
+    }).catch(e=>{
+      console.warn('config load failed', e)
     })
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (!reduce) {
       lenis = new Lenis({ duration:1.2 })
+      lenisRef.current = lenis
       function raf(t){ lenis.raf(t); requestAnimationFrame(raf) }
       requestAnimationFrame(raf)
     }
-    return ()=>{ if (lenis && lenis.destroy) lenis.destroy() }
+    return ()=>{
+      if (lenis && lenis.destroy) lenis.destroy()
+      if (lenisRef.current === lenis) lenisRef.current = null
+    }
   },[])
+
+  useEffect(()=>{
+    const lenis = lenisRef.current
+    if (!lenis) return
+    if (addCardOpen || manageCardsOpen) lenis.stop()
+    else lenis.start()
+  }, [addCardOpen, manageCardsOpen])
 
   if (!cfg) return null
 
@@ -98,6 +119,48 @@ export default function Home(){
     const engine = (cfg.search && cfg.search.engine) || 'bing'
     const base = (cfg.search && cfg.search.engines && cfg.search.engines[engine]) || 'https://www.bing.com/search?q='
     location.href = base + encodeURIComponent(q)
+  }
+
+  async function handleAddCard(card){
+    setSavingCard(true)
+    setCardError('')
+    try{
+      const payload = await addNavCard(card)
+      if (payload && payload.config){
+        setCfg(payload.config)
+      } else {
+        setCfg(current=>({...current, navCards:[...(current.navCards || []), (payload && payload.card) || card]}))
+      }
+      setAddCardOpen(false)
+    }catch(e){
+      setCardError(e.message || '卡片保存失败，请稍后重试')
+    }finally{
+      setSavingCard(false)
+    }
+  }
+
+  function openAddCard(){
+    setCardError('')
+    setAddCardOpen(true)
+  }
+
+  async function handleReorderCards(order){
+    setSavingOrder(true)
+    setOrderError('')
+    try{
+      const payload = await reorderNavCards(order)
+      if (payload && payload.config) setCfg(payload.config)
+      setManageCardsOpen(false)
+    }catch(e){
+      setOrderError(e.message || '卡片顺序保存失败，请稍后重试')
+    }finally{
+      setSavingOrder(false)
+    }
+  }
+
+  function openManageCards(){
+    setOrderError('')
+    setManageCardsOpen(true)
   }
 
   return (
@@ -125,11 +188,26 @@ export default function Home(){
         <section>
           <h2>导航</h2>
           <div className="cards">
-            {cfg.navCards.map((n,i)=>(<NavCard key={i} item={n}/>))}
+             {(cfg.navCards || []).map((n,i)=>(<NavCard key={n.id || n.link || i} item={n}/>))}
           </div>
         </section>
       </main>
-      <FloatingMenu />
+      <FloatingMenu onAddCard={openAddCard} onManageCards={openManageCards} />
+      <AddCardModal
+        open={addCardOpen}
+        onClose={()=>{ if (!savingCard) setAddCardOpen(false) }}
+        onSubmit={handleAddCard}
+        saving={savingCard}
+        error={cardError}
+      />
+      <ManageCardsModal
+        open={manageCardsOpen}
+        cards={cfg.navCards || []}
+        onClose={()=>{ if (!savingOrder) setManageCardsOpen(false) }}
+        onSubmit={handleReorderCards}
+        saving={savingOrder}
+        error={orderError}
+      />
     </div>
   )
 }
