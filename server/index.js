@@ -16,7 +16,7 @@ app.use(cors({
   origin: true,
   credentials: true
 }))
-app.use(express.json({limit:'3mb'}))
+app.use(express.json({limit:'12mb'}))
 app.use(cookieParser())
 
 // In-memory session store for demo purposes
@@ -631,7 +631,11 @@ app.post('/api/bookmarks/import', requireAuth, (req,res)=>{
     sendBookmarkResult(res, bookmarks.importBookmarks(req.body || {}), 201)
   }catch(e){
     console.error('bookmark import failed', e && e.message)
-    res.status(500).json({ok:false,message:'书签导入失败'})
+    const permissionError = e && ['EACCES','EPERM','EROFS'].includes(e.code)
+    res.status(500).json({
+      ok:false,
+      message:permissionError ? '书签数据无法写入，请检查 Docker 挂载目录 /app/data 的读写权限' : '书签导入失败'
+    })
   }
 })
 
@@ -729,6 +733,14 @@ app.get('*',(req,res)=>{
   const fallback = path.join(publicPath, 'index.html')
   if (fs.existsSync(fallback)) return res.sendFile(fallback)
   res.status(404).send('not found')
+})
+
+app.use((err,req,res,next)=>{
+  if (err && err.type === 'entity.too.large'){
+    return res.status(413).json({ok:false,message:'导入文件过大，最大支持 12MB'})
+  }
+  if (err) console.error('request error', err.message)
+  res.status(500).json({ok:false,message:'请求处理失败'})
 })
 
 app.listen(PORT,()=>{

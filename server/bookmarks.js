@@ -79,15 +79,23 @@ function createStore(filePath){
   function write(data){
     fs.mkdirSync(path.dirname(filePath), {recursive:true})
     const tempPath = filePath + '.' + process.pid + '.' + Date.now() + '.tmp'
+    const serialized = JSON.stringify(data, null, 2) + '\n'
     try{
-      fs.writeFileSync(tempPath, JSON.stringify(data, null, 2) + '\n', 'utf8')
+      fs.writeFileSync(tempPath, serialized, 'utf8')
       try{
         fs.renameSync(tempPath, filePath)
-      }catch(e){
-        if (e && (e.code === 'EEXIST' || e.code === 'EPERM')){
-          fs.rmSync(filePath, {force:true})
+      }catch(renameError){
+        // Bind-mounted and network-backed filesystems can reject replacing a
+        // destination with rename. Keep the atomic path first, then fall back
+        // to a direct write only for known replacement limitations.
+        try{
+          if (fs.existsSync(filePath)) fs.rmSync(filePath, {force:true})
           fs.renameSync(tempPath, filePath)
-        }else throw e
+        }catch(replaceError){
+          const fallbackCodes = ['EEXIST','EPERM','EXDEV','EBUSY']
+          if (!fallbackCodes.includes(replaceError && replaceError.code)) throw replaceError
+          fs.writeFileSync(filePath, serialized, 'utf8')
+        }
       }
     }finally{
       if (fs.existsSync(tempPath)) fs.rmSync(tempPath, {force:true})
