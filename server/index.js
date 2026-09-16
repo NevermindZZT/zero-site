@@ -16,6 +16,20 @@ app.use(cors({
   origin: true,
   credentials: true
 }))
+
+// Log only import request metadata. Never log bookmark HTML or URLs.
+app.use('/api/bookmarks/import', (req,res,next)=>{
+  const startedAt = Date.now()
+  const contentLength = req.headers['content-length'] || 'unknown'
+  res.on('finish', ()=>{
+    console.log('[bookmark-import]', req.method, req.path, res.statusCode, Date.now() - startedAt + 'ms', 'bytes=' + contentLength)
+  })
+  req.on('aborted', ()=>{
+    console.warn('[bookmark-import]', req.method, req.path, 'aborted', 'bytes=' + contentLength)
+  })
+  next()
+})
+
 app.use(express.json({limit:'12mb'}))
 app.use(cookieParser())
 
