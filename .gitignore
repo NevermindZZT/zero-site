@@ -35,6 +35,9 @@ Thumbs.db
 coverage/
 .cache/
 
+# Runtime data
+data/bookmarks.json
+
 # Misc
 .history/
 

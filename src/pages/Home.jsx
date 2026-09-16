@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import NavCard from '../components/NavCard'
 import FloatingMenu from '../components/FloatingMenu'
 import AddCardModal from '../components/AddCardModal'
@@ -8,6 +9,7 @@ import { motion } from 'framer-motion'
 import Lenis from 'lenis'
 
 export default function Home(){
+  const navigate = useNavigate()
   const [cfg, setCfg] = useState(null)
   const [bgUrl, setBgUrl] = useState('')
   const [addCardOpen, setAddCardOpen] = useState(false)
@@ -231,7 +233,7 @@ export default function Home(){
           </div>
         </section>
       </main>
-      <FloatingMenu onAddCard={openAddCard} onManageCards={openManageCards} />
+      <FloatingMenu onAddCard={openAddCard} onManageCards={openManageCards} onBookmarks={()=>navigate('/bookmarks')} />
       <AddCardModal
         open={addCardOpen}
         onClose={()=>{ if (!savingCard) { setEditingCard(null); setAddCardOpen(false) } }}

@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   app:
     build: .
@@ -6,3 +5,10 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+    volumes:
+      - zerosite-config:/app/public/js
+      - zerosite-data:/app/data
+
+volumes:
+  zerosite-config:
+  zerosite-data:

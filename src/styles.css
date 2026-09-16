@@ -229,3 +229,92 @@ input, button{color:var(--fg)}
   .move-btn{width:30px}
 }
 
+
+/* bookmark library */
+.bookmark-page.container{width:calc(100% - 64px);max-width:1800px;margin:32px auto;padding:0 0 72px}
+.bookmark-page-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:36px 0 28px}
+.bookmark-page-header h1{margin:4px 0 8px;font-size:clamp(34px,5vw,52px);letter-spacing:-.04em}
+.bookmark-page-header p:not(.eyebrow){max-width:560px;margin:0;color:var(--muted)}
+.bookmark-page-header-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+.bookmark-page-header-actions .btn{white-space:nowrap}
+.bookmark-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px;padding:11px 14px;border:1px solid rgba(59,130,246,.25);border-radius:12px;background:rgba(59,130,246,.09);color:var(--fg);font-size:14px}
+.bookmark-notice button{border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer}
+.bookmark-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px;align-items:start}
+.bookmark-sidebar{position:sticky;top:22px;padding:10px;border:1px solid rgba(127,127,127,.16);border-radius:16px;background:rgba(255,255,255,.06);backdrop-filter:blur(12px)}
+.bookmark-sidebar-title{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 10px;color:var(--fg)}
+.bookmark-sidebar-title button,.bookmark-group-actions button{border:0;background:transparent;color:var(--muted);cursor:pointer}
+.bookmark-sidebar-title button{width:28px;height:28px;border-radius:8px;font-size:20px;line-height:1}
+.bookmark-sidebar-title button:hover,.bookmark-group-actions button:hover{background:rgba(59,130,246,.12);color:var(--accent)}
+.bookmark-group-all,.bookmark-group-select{display:flex;align-items:center;gap:9px;width:100%;border:0;border-radius:9px;background:transparent;color:var(--fg);cursor:pointer;text-align:left;font-size:14px}
+.bookmark-group-all{padding:9px 8px}
+.bookmark-group-row{display:flex;align-items:center;gap:2px;padding-left:calc(var(--group-depth) * 12px)}
+.bookmark-group-select{padding:8px;min-width:0}
+.bookmark-group-select span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookmark-group-all.is-active,.bookmark-group-row.is-active .bookmark-group-select{background:rgba(59,130,246,.14);color:var(--accent);font-weight:700}
+.bookmark-group-actions{display:none;align-items:center;gap:2px;flex:0 0 auto}
+.bookmark-group-actions button{width:24px;height:24px;border-radius:6px}
+.bookmark-group-row:hover .bookmark-group-actions,.bookmark-group-row.is-active .bookmark-group-actions{display:flex}
+.bookmark-content{min-width:0}
+.bookmark-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px;color:var(--muted);font-size:13px}
+.bookmark-search{display:flex;align-items:center;gap:8px;min-width:0;flex:1;max-width:680px;padding:9px 12px;border:1px solid rgba(127,127,127,.18);border-radius:11px;background:rgba(255,255,255,.06)}
+.bookmark-search span{font-size:20px;line-height:1;color:var(--muted)}
+.bookmark-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--fg);font-size:14px}
+.bookmark-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.bookmark-card{display:flex;flex-direction:column;justify-content:space-between;min-height:154px;padding:15px;border:1px solid rgba(127,127,127,.17);border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.025));box-shadow:0 8px 24px rgba(15,23,42,.08);transition:transform .18s ease,border-color .18s ease}
+.bookmark-card:hover{border-color:rgba(59,130,246,.36);transform:translateY(-2px)}
+.bookmark-card-link{display:flex;align-items:flex-start;gap:12px;min-width:0;color:inherit;text-decoration:none}
+.bookmark-icon{position:relative;display:flex;align-items:center;justify-content:center;flex:0 0 42px;width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#7c3aed);overflow:hidden;color:#fff;font-size:18px;font-weight:800}
+.bookmark-icon img{position:absolute;inset:0;width:100%;height:100%;padding:6px;object-fit:contain;opacity:0;transition:opacity .16s ease;background:#fff}
+.bookmark-icon.is-loaded img{opacity:1}
+.bookmark-card-link>div{min-width:0}
+.bookmark-card strong,.bookmark-card-link span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bookmark-card strong{font-size:15px}
+.bookmark-card-link span{margin-top:4px;color:var(--muted);font-size:12px}
+.bookmark-card-link p{display:-webkit-box;margin:7px 0 0;overflow:hidden;color:var(--muted);font-size:13px;line-height:1.45;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.bookmark-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.bookmark-tags em{padding:2px 6px;border-radius:999px;background:rgba(59,130,246,.1);color:var(--accent);font-size:11px;font-style:normal}
+.bookmark-card-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.bookmark-card-actions button{padding:5px 7px;border:1px solid rgba(127,127,127,.2);border-radius:7px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}
+.bookmark-card-actions button:hover:not(:disabled){border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.1);color:var(--accent)}
+.bookmark-card-actions button.danger:hover{border-color:rgba(220,53,69,.4);background:rgba(220,53,69,.1);color:#dc3545}
+.bookmark-card-actions button:disabled{cursor:not-allowed;opacity:.35}
+.bookmark-empty{display:flex;align-items:center;justify-content:center;min-height:260px;padding:26px;border:1px dashed rgba(127,127,127,.32);border-radius:16px;color:var(--muted);text-align:center;flex-direction:column;gap:10px}
+.bookmark-empty strong{color:var(--fg);font-size:17px}
+.bookmark-empty .btn{margin-top:4px}
+.bookmark-modal-card{max-width:560px}
+.bookmark-modal-card--wide{max-width:680px}
+.modal-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:13px}
+.modal-form select,.modal-form textarea{width:100%;border:1px solid rgba(15,23,42,.1);border-radius:10px;background:rgba(255,255,255,.45);color:var(--fg);outline:none;padding:12px 13px;font:inherit}
+[data-theme="dark"] .modal-form select,[data-theme="dark"] .modal-form textarea{border-color:rgba(255,255,255,.09);background:rgba(255,255,255,.04)}
+.modal-form textarea{min-height:86px;resize:vertical}
+.modal-form select:focus,.modal-form textarea:focus{border-color:rgba(37,99,235,.45);box-shadow:0 0 0 4px rgba(37,99,235,.1)}
+.import-group-list{display:flex;flex-direction:column;gap:7px;max-height:310px;overflow:auto;margin:0 0 18px;padding:10px;border:1px solid rgba(127,127,127,.18);border-radius:12px;overscroll-behavior:contain}
+.import-group-list label{display:flex;align-items:center;gap:9px;padding:8px;border-radius:8px;cursor:pointer}
+.import-group-list label:hover{background:rgba(59,130,246,.08)}
+.import-group-list span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.import-group-list em{color:var(--muted);font-size:12px;font-style:normal}
+
+@media (max-width:760px){
+  .bookmark-page.container{width:auto;max-width:none;margin:0;padding:0 20px 58px}
+  .bookmark-page-header{align-items:flex-start;flex-direction:column;margin-top:25px}
+  .bookmark-page-header-actions{justify-content:flex-start}
+  .bookmark-layout{grid-template-columns:1fr}
+  .bookmark-sidebar{position:static;display:flex;flex-wrap:wrap;gap:5px;padding:8px}
+  .bookmark-sidebar-title{width:100%;padding-bottom:4px}
+  .bookmark-group-tree{display:contents}
+  .bookmark-group-all,.bookmark-group-row{width:auto;padding-left:0}
+  .bookmark-group-all,.bookmark-group-select{width:auto;padding:7px 9px;white-space:nowrap}
+  .bookmark-group-row{border-radius:9px}
+  .bookmark-group-actions{display:none!important}
+  .bookmark-toolbar{align-items:stretch;flex-direction:column}
+  .bookmark-search{max-width:none}
+}
+@media (max-width:480px){
+  .bookmark-page.container{padding:0 14px 58px}
+  .bookmark-page-header-actions{width:100%}
+  .bookmark-page-header-actions .btn{flex:1}
+  .bookmark-grid{grid-template-columns:1fr}
+  .bookmark-card{min-height:0}
+  .bookmark-card-actions button{padding:6px 7px}
+}
+

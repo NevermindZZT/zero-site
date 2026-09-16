@@ -6,7 +6,7 @@ ZeroSite 是一个轻量的个人网站示例，运行时通过 `public/js/confi
 
 - 运行时可编辑配置：`public/js/config.json`。
 - 支持 `public/pages/*.html` 与 `public/pages/*.md`（后端会将 Markdown 渲染为 HTML）。
-- 简易后端 API：`/api/config`、`/api/login`、`/api/logout`、`/api/pages/:name`、`/api/nav-cards`、`/api/nav-cards/order`、`/api/nav-cards/:reference`、`/api/favicon`、`/api/bing-wallpaper`。
+- 简易后端 API：`/api/config`、`/api/login`、`/api/logout`、`/api/pages/:name`、`/api/nav-cards`、`/api/bookmarks`、`/api/bookmark-groups`、`/api/favicon`、`/api/bing-wallpaper`。
 - 登录使用 HttpOnly 会话 cookie（示例实现，后端当前使用内存会话存储）。
 
 ## 快速开始
@@ -75,7 +75,7 @@ services:
 
 要点：
 
-- 卡片管理需要 `public` 可写，示例使用 `:rw`；使用 `:ro` 会禁止保存新增卡片。
+- 卡片管理需要 `public` 可写，示例使用 `:rw`；使用 `:ro` 会禁止保存新增卡片。Docker Compose 默认使用 `zerosite-config` 持久化 `/app/public/js/config.json`，使用 `zerosite-data` 持久化私有目录 `/app/data` 中的书签数据。
 - 确认容器中应用使用的 `public` 路径（镜像工作目录可能不同）。  
 - 生产环境请避免在 `public/js/config.json` 中放置明文敏感信息。
 
@@ -92,6 +92,18 @@ services:
 
 - `background.source` 支持 `bing`（服务端使用 Bing 官方 `HPImageArchive` 获取每日壁纸）或 `custom`（请提供 `customUrl`）。
 - 页面放 `public/pages/*.html` 或 `public/pages/*.md`，后端会优先返回 HTML。
+
+## 书签管理
+
+登录后可从右下角菜单进入“书签管理”（`/bookmarks`）。书签数据独立保存于 `data/bookmarks.json`（容器内为 `/app/data/bookmarks.json`），不会通过静态资源直接暴露，支持：
+
+- 一级或多级分组的新建、编辑、删除；删除分组后，其中书签会移至未分类。
+- 书签的新建、编辑、删除、分组内排序、标签、描述和搜索。
+- 沿用 favicon 自动获取逻辑；图标加载前或失败时显示书签首字母。
+- 从 Chrome、Edge、Firefox 导出的 HTML 书签文件导入。导入前会显示分组、数量和重复链接预览，可按分组选择导入；默认跳过重复 URL。
+- 从书签卡片直接“添加到首页”，生成对应导航卡片。
+
+相关接口：`GET/POST /api/bookmarks`、`PUT/DELETE /api/bookmarks/:id`、`PUT /api/bookmarks/order`、`GET/POST /api/bookmark-groups`、`PUT/DELETE /api/bookmark-groups/:id`、`POST /api/bookmarks/import/preview`、`POST /api/bookmarks/import`。
 
 ## 首页卡片管理
 

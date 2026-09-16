@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import ContentPage from './pages/ContentPage'
+import Bookmarks from './pages/Bookmarks'
 import { isAuthenticated } from './services/auth'
 
 function PrivateRoute({ children }) {
@@ -23,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login/>} />
         <Route path="/page/:name" element={<ContentPage/>} />
+        <Route path="/bookmarks" element={<PrivateRoute><Bookmarks/></PrivateRoute>} />
         <Route path="/" element={<PrivateRoute><Home/></PrivateRoute>} />
       </Routes>
     </BrowserRouter>

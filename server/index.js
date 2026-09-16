@@ -5,6 +5,7 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { marked } = require('marked')
 const crypto = require('crypto')
+const { createBookmarkService } = require('./bookmarks')
 
 const app = express()
 const PORT = process.env.PORT || 8080
@@ -15,7 +16,7 @@ app.use(cors({
   origin: true,
   credentials: true
 }))
-app.use(express.json())
+app.use(express.json({limit:'3mb'}))
 app.use(cookieParser())
 
 // In-memory session store for demo purposes
@@ -30,6 +31,8 @@ const ICON_REQUEST_TIMEOUT_MS = 8000
 // Serve built frontend (dist) if exists, otherwise serve public for dev static assets
 const distPath = path.join(__dirname, '..', 'dist')
 const publicPath = path.join(__dirname, '..', 'public')
+const bookmarksPath = process.env.BOOKMARKS_PATH || path.join(__dirname, '..', 'data', 'bookmarks.json')
+const bookmarks = createBookmarkService(bookmarksPath)
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
 } else if (fs.existsSync(publicPath)) {
@@ -81,6 +84,25 @@ function toPublicConfig(cfg){
     ...publicCfg,
     navCards: Array.isArray(publicCfg.navCards) ? publicCfg.navCards : []
   }
+}
+
+function syncBookmarkHomeCard(bookmark, mode='update'){
+  const cfg = loadConfig()
+  if (!cfg || !Array.isArray(cfg.navCards)) return
+  let changed = false
+  cfg.navCards = cfg.navCards.map(card=>{
+    if (!card || card.bookmarkId !== bookmark.id) return card
+    changed = true
+    if (mode === 'detach'){
+      const { bookmarkId, ...independentCard } = card
+      return independentCard
+    }
+    const updated = {...card, title:bookmark.title, link:bookmark.url}
+    if (bookmark.iconUrl) updated.iconUrl = bookmark.iconUrl
+    else delete updated.iconUrl
+    return updated
+  })
+  if (changed) saveConfig(cfg)
 }
 
 function getSession(req){
@@ -545,6 +567,130 @@ app.delete('/api/nav-cards/:reference', requireAuth, (req,res)=>{
     return res.status(500).json({ok:false,message:'卡片删除失败'})
   }
   res.json({ok:true,config:toPublicConfig(cfg)})
+})
+
+
+function sendBookmarkResult(res, result, successStatus=200){
+  if (result && result.error) return res.status(result.status || 400).json({ok:false,message:result.error})
+  return res.status(successStatus).json({ok:true,...result})
+}
+
+// API: bookmark data, grouping, and browser-export import
+app.get('/api/bookmarks', requireAuth, (req,res)=>{
+  const data = bookmarks.summary()
+  const groupId = typeof req.query.groupId === 'string' ? req.query.groupId : ''
+  const query = typeof req.query.q === 'string' ? req.query.q.trim().toLocaleLowerCase() : ''
+  let items = data.bookmarks
+  if (groupId) items = items.filter(bookmark=>(bookmark.groupId || '') === groupId)
+  if (query){
+    items = items.filter(bookmark=>[
+      bookmark.title,
+      bookmark.url,
+      bookmark.description,
+      ...(bookmark.tags || [])
+    ].join(' ').toLocaleLowerCase().includes(query))
+  }
+  res.json({ok:true,groups:data.groups,bookmarks:items})
+})
+
+app.get('/api/bookmark-groups', requireAuth, (req,res)=>{
+  res.json({ok:true,groups:bookmarks.summary().groups})
+})
+
+app.post('/api/bookmark-groups', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.createGroup(req.body || {}), 201)
+})
+
+app.put('/api/bookmark-groups/order', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.reorderGroups(req.body && req.body.order))
+})
+
+app.put('/api/bookmark-groups/:id', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.updateGroup(req.params.id, req.body || {}))
+})
+
+app.delete('/api/bookmark-groups/:id', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.deleteGroup(req.params.id))
+})
+
+app.post('/api/bookmarks/import/preview', requireAuth, (req,res)=>{
+  const html = req.body && req.body.html
+  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
+  try{
+    const preview = bookmarks.importPreview(html)
+    res.json({ok:true,groups:preview.groups,totalBookmarks:preview.totalBookmarks,duplicates:preview.duplicates})
+  }catch(e){
+    res.status(400).json({ok:false,message:'书签文件解析失败'})
+  }
+})
+
+app.post('/api/bookmarks/import', requireAuth, (req,res)=>{
+  const html = req.body && req.body.html
+  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
+  try{
+    sendBookmarkResult(res, bookmarks.importBookmarks(req.body || {}), 201)
+  }catch(e){
+    console.error('bookmark import failed', e && e.message)
+    res.status(500).json({ok:false,message:'书签导入失败'})
+  }
+})
+
+app.post('/api/bookmarks', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.createBookmark(req.body || {}), 201)
+})
+
+app.put('/api/bookmarks/order', requireAuth, (req,res)=>{
+  sendBookmarkResult(res, bookmarks.reorderBookmarks(req.body && req.body.groupId, req.body && req.body.order))
+})
+
+app.post('/api/bookmarks/:id/add-to-home', requireAuth, (req,res)=>{
+  const bookmark = bookmarks.summary().bookmarks.find(item=>item.id === req.params.id)
+  if (!bookmark) return res.status(404).json({ok:false,message:'书签不存在'})
+  const cfg = loadConfig()
+  if (!cfg) return res.status(500).json({ok:false,message:'config not found'})
+  const currentCards = Array.isArray(cfg.navCards) ? normalizeNavCards(cfg.navCards) : []
+  const existing = currentCards.find(card=>card.bookmarkId === bookmark.id || card.link === bookmark.url)
+  if (existing) return res.json({ok:true,card:existing,config:toPublicConfig(cfg),message:'该书签已在首页'})
+  if (currentCards.length >= MAX_NAV_CARDS) return res.status(400).json({ok:false,message:'首页卡片数量已达到上限'})
+  const card = {
+    id:crypto.randomUUID(),
+    bookmarkId:bookmark.id,
+    title:bookmark.title,
+    link:bookmark.url,
+    ...(bookmark.iconUrl ? {iconUrl:bookmark.iconUrl} : {})
+  }
+  cfg.navCards = [...currentCards, card]
+  try{
+    saveConfig(cfg)
+  }catch(e){
+    console.error('bookmark home card save failed', e && e.message)
+    return res.status(500).json({ok:false,message:'添加首页失败'})
+  }
+  res.status(201).json({ok:true,card,config:toPublicConfig(cfg)})
+})
+
+app.put('/api/bookmarks/:id', requireAuth, (req,res)=>{
+  const result = bookmarks.updateBookmark(req.params.id, req.body || {})
+  if (result && result.error) return sendBookmarkResult(res, result)
+  try{
+    syncBookmarkHomeCard(result.bookmark)
+  }catch(e){
+    console.error('linked homepage card sync failed', e && e.message)
+    return res.status(500).json({ok:false,message:'书签已更新，但首页卡片同步失败'})
+  }
+  sendBookmarkResult(res, result)
+})
+
+app.delete('/api/bookmarks/:id', requireAuth, (req,res)=>{
+  const result = bookmarks.deleteBookmark(req.params.id)
+  if (result && result.error) return sendBookmarkResult(res, result)
+  try{
+    syncBookmarkHomeCard(result.bookmark, 'detach')
+  }catch(e){
+    console.error('linked homepage card detach failed', e && e.message)
+    return res.status(500).json({ok:false,message:'书签已删除，但首页卡片解除关联失败'})
+  }
+  sendBookmarkResult(res, result)
 })
 
 // API: resolve a site's favicon/logo server-side to avoid browser CORS issues

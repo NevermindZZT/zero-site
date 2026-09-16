@@ -7,7 +7,7 @@ function getSystemTheme(){
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
-export default function FloatingMenu({onAddCard, onManageCards}){
+export default function FloatingMenu({onAddCard, onManageCards, onBookmarks}){
   const [open,setOpen] = useState(false)
   const [theme,setTheme] = useState(localStorage.getItem('theme') || getSystemTheme())
 
@@ -28,6 +28,10 @@ export default function FloatingMenu({onAddCard, onManageCards}){
       <AnimatePresence>
       {open && (
         <motion.div className="menu-panel" initial={{opacity:0,scale:0.9,y:10}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:0.95,y:6}}>
+          <button className="menu-item" onClick={()=>{ setOpen(false); onBookmarks?.() }} aria-label="打开书签管理">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+            <span>书签管理</span>
+          </button>
           <button className="menu-item" onClick={()=>{ setOpen(false); onAddCard?.() }} aria-label="添加首页卡片">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             <span>添加卡片</span>
