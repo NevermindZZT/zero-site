@@ -8,11 +8,11 @@ import {
   deleteGroup,
   importBookmarks,
   loadBookmarks,
-  previewBookmarkImport,
   reorderBookmarks,
   updateBookmark,
   updateGroup
 } from '../services/bookmarks'
+import { buildBookmarkImportPreview, parseBookmarkHtml } from '../services/bookmarkImport'
 
 const EMPTY_BOOKMARK = {title:'', url:'', iconUrl:'', description:'', groupId:'', tags:''}
 const EMPTY_GROUP = {name:'', icon:'', parentId:''}
@@ -187,11 +187,12 @@ export default function Bookmarks(){
     const file = event.target.files && event.target.files[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = async ()=>{
-      const html = String(reader.result || '')
+    reader.onload = ()=>{
       try{
-        const preview = await previewBookmarkImport(html)
-        setImportState({html, preview, selected:new Set((preview.groups || []).map(group=>group.path.join(' / ')))})
+        const entries = parseBookmarkHtml(String(reader.result || ''))
+        if (!entries.length) throw new Error('文件中没有找到可导入的网页书签')
+        const preview = buildBookmarkImportPreview(entries, data.bookmarks)
+        setImportState({entries, preview, selected:new Set((preview.groups || []).map(group=>group.path.join(' / ')))})
       }catch(e){ setError(e.message || '书签文件解析失败') }
     }
     reader.readAsText(file)
@@ -202,7 +203,7 @@ export default function Bookmarks(){
     if (!importState) return
     setSaving(true)
     try{
-      const response = await importBookmarks(importState.html, [...importState.selected])
+      const response = await importBookmarks(importState.entries, [...importState.selected])
       setData(response.data)
       setImportState(null)
       setError('已导入 ' + response.imported + ' 条书签，跳过 ' + response.skipped + ' 条重复链接')

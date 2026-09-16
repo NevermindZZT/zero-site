@@ -589,6 +589,10 @@ function sendBookmarkResult(res, result, successStatus=200){
   return res.status(successStatus).json({ok:true,...result})
 }
 
+function hasBookmarkImportInput(body){
+  return !!(body && ((typeof body.html === 'string' && body.html.trim()) || Array.isArray(body.entries)))
+}
+
 // API: bookmark data, grouping, and browser-export import
 app.get('/api/bookmarks', requireAuth, (req,res)=>{
   const data = bookmarks.summary()
@@ -628,10 +632,9 @@ app.delete('/api/bookmark-groups/:id', requireAuth, (req,res)=>{
 })
 
 app.post('/api/bookmarks/import/preview', requireAuth, (req,res)=>{
-  const html = req.body && req.body.html
-  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
+  if (!hasBookmarkImportInput(req.body)) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
   try{
-    const preview = bookmarks.importPreview(html)
+    const preview = bookmarks.importPreview(req.body)
     res.json({ok:true,groups:preview.groups,totalBookmarks:preview.totalBookmarks,duplicates:preview.duplicates})
   }catch(e){
     res.status(400).json({ok:false,message:'书签文件解析失败'})
@@ -639,8 +642,7 @@ app.post('/api/bookmarks/import/preview', requireAuth, (req,res)=>{
 })
 
 app.post('/api/bookmarks/import', requireAuth, (req,res)=>{
-  const html = req.body && req.body.html
-  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
+  if (!hasBookmarkImportInput(req.body)) return res.status(400).json({ok:false,message:'请选择浏览器导出的 HTML 书签文件'})
   try{
     sendBookmarkResult(res, bookmarks.importBookmarks(req.body || {}), 201)
   }catch(e){

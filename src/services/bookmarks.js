@@ -41,12 +41,27 @@ export function deleteGroup(id){
   return request('/api/bookmark-groups/' + encodeURIComponent(id), {method:'DELETE'})
 }
 
-export function previewBookmarkImport(html){
-  return request('/api/bookmarks/import/preview', {method:'POST', body:JSON.stringify({html})})
+export function previewBookmarkImport(entries){
+  return request('/api/bookmarks/import/preview', {method:'POST', body:JSON.stringify({entries})})
 }
 
-export function importBookmarks(html, selectedPaths, duplicateStrategy='skip'){
-  return request('/api/bookmarks/import', {method:'POST', body:JSON.stringify({html, selectedPaths, duplicateStrategy})})
+export async function importBookmarks(entries, selectedPaths, duplicateStrategy='skip'){
+  const list = Array.isArray(entries) ? entries : []
+  // Keep each request small enough for strict reverse-proxy body limits.
+  const chunkSize = 5
+  let imported = 0
+  let skipped = 0
+  let data = null
+  for (let index = 0; index < list.length; index += chunkSize){
+    const payload = await request('/api/bookmarks/import', {
+      method:'POST',
+      body:JSON.stringify({entries:list.slice(index, index + chunkSize), selectedPaths, duplicateStrategy})
+    })
+    imported += Number(payload.imported) || 0
+    skipped += Number(payload.skipped) || 0
+    data = payload.data || data
+  }
+  return {ok:true, imported, skipped, data}
 }
 
 export function addBookmarkToHome(id){

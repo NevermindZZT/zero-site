@@ -196,6 +196,31 @@ function parseBookmarkHtml(html){
   return entries
 }
 
+function normaliseImportEntries(entries){
+  if (!Array.isArray(entries)) return []
+  return entries.reduce((result, entry)=>{
+    if (!entry || typeof entry !== 'object') return result
+    const url = typeof entry.url === 'string' ? entry.url.trim() : ''
+    if (!isHttpUrl(url)) return result
+    const pathParts = Array.isArray(entry.path) ? entry.path.map(part=>String(part || '').trim()).filter(Boolean).slice(0, 20) : []
+    result.push({
+      title:stripHtml(entry.title).slice(0, MAX_TITLE_LENGTH) || url,
+      url,
+      path:pathParts,
+      iconUrl:'',
+      description:''
+    })
+    return result
+  }, [])
+}
+
+function getImportEntries(input){
+  if (Array.isArray(input)) return normaliseImportEntries(input)
+  if (typeof input === 'string') return parseBookmarkHtml(input)
+  if (input && Array.isArray(input.entries)) return normaliseImportEntries(input.entries)
+  return parseBookmarkHtml(input && input.html)
+}
+
 function pathKey(pathParts){ return pathParts.join(' / ') }
 
 function createGroupPath(data, pathParts){
@@ -346,9 +371,9 @@ function createBookmarkService(filePath){
     return {data:summary()}
   }
 
-  function importPreview(html){
+  function importPreview(input){
     const data = store.read()
-    const entries = parseBookmarkHtml(html)
+    const entries = getImportEntries(input)
     const existingUrls = new Set(data.bookmarks.map(bookmark=>normaliseUrl(bookmark.url)))
     const groups = new Map()
     let duplicates = 0
@@ -362,7 +387,7 @@ function createBookmarkService(filePath){
   }
 
   function importBookmarks(input){
-    const preview = importPreview(input.html)
+    const preview = importPreview(input)
     const selectedKeys = Array.isArray(input.selectedPaths) ? new Set(input.selectedPaths) : null
     const duplicateStrategy = input.duplicateStrategy === 'allow' ? 'allow' : 'skip'
     const data = store.read()
